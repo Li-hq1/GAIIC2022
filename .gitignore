@@ -1,7 +1,7 @@
 # Local files
-input/
-project/best_model
-temp/
+input/*
+project/best_model/*
+temp/*
 
 
 # Byte-compiled / optimized / DLL files
