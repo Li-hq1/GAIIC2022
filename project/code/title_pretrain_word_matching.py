@@ -13,7 +13,7 @@ from utils.logging import my_custom_logger
 import argparse 
 
 parser = argparse.ArgumentParser('', add_help=False)
-parser.add_argument('--gpus', default='1', type=str)
+parser.add_argument('--gpus', type=str)
 args = parser.parse_args()
 
 seed = 0
@@ -28,7 +28,7 @@ np.random.seed(seed)
 torch.backends.cudnn.benchmark = True
 
 batch_size = 256
-max_epoch = int(400 * 13 / 6.5)
+max_epoch = 400
 os.environ['CUDA_VISIBLE_DEVICES'] = gpus
 
 
@@ -36,7 +36,7 @@ split_layers = 0
 fuse_layers = 6
 n_img_expand = 6
 
-save_dir = f'temp/tmp_data/lhq_output/dataset_scale/6.5w/'
+save_dir = f'temp/tmp_data/lhq_output/pretrain_task/word_matching/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 save_name = f'order_seed{seed}'
@@ -52,10 +52,9 @@ warmup_epochs = 0
 LOAD_CKPT = False
 ckpt_file = ''
 
-
 # order
 train_file = 'temp/tmp_data/lhq_data/divided/title/order/fine40000.txt,temp/tmp_data/lhq_data/equal_split_word/coarse89588.txt'
-val_file = 'temp/tmp_data/lhq_data/divided/title/order/fine700.txt,temp/tmp_data/lhq_data/divided/title/order/coarse1412.txt'
+val_file = 'temp/tmp_data/lhq_data/divided/title/order/fine9000.txt'
 # necessary files
 vocab_dict_file = 'temp/tmp_data/lhq_data/vocab/vocab_dict.json'
 vocab_file = 'temp/tmp_data/lhq_data/vocab/vocab.txt'
@@ -64,17 +63,10 @@ attr_dict_file = 'temp/tmp_data/lhq_data/dict/attr_relation_dict.json'
 with open(vocab_dict_file, 'r') as f:
     vocab_dict = json.load(f)
 
-# model
-split_config = BertConfig(num_hidden_layers=split_layers)
-fuse_config = BertConfig(num_hidden_layers=fuse_layers, image_dropout=image_dropout)
-model = DesignFuseModel(split_config, fuse_config, vocab_file, n_img_expand=n_img_expand, word_match=True)
-# if LOAD_CKPT:
-#     model.load_state_dict(torch.load(ckpt_file))
-model.cuda()
 
 # dataset
-from dataset.title_unequal_2tasks_dataset import FuseReplaceDataset, cls_collate_fn
-dataset = FuseReplaceDataset
+from dataset.title_unequal_2tasks_dataset import FuseReplaceDatasetWordmatch, cls_collate_fn
+dataset = FuseReplaceDatasetWordmatch
 collate_fn = cls_collate_fn
 
 # data
@@ -101,6 +93,13 @@ val_dataloader = DataLoader(
     )
 
 
+# model
+split_config = BertConfig(num_hidden_layers=split_layers)
+fuse_config = BertConfig(num_hidden_layers=fuse_layers, image_dropout=image_dropout)
+model = DesignFuseModel(split_config, fuse_config, vocab_file, n_img_expand=n_img_expand, word_match=True)
+if LOAD_CKPT:
+    model.load_state_dict(torch.load(ckpt_file))
+model.cuda()
 
 # optimizer 
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
@@ -119,7 +118,14 @@ def evaluate(model, val_dataloader):
         images = images.cuda()
 
         logits, word_logits, word_mask = model(images, splits)
-        
+
+        # word logits process
+        _, W = word_logits.shape
+        word_labels = word_labels[:, :W]
+        word_mask = word_mask.to(torch.bool)
+        logits = word_logits[word_mask]
+        labels = word_labels[word_mask]
+
         logits = logits.cpu()
         logits = torch.sigmoid(logits)
         logits[logits>0.5] = 1
@@ -177,7 +183,7 @@ for epoch in range(max_epoch):
         total += len(labels)
         i += 1
         
-        loss = loss_fn(logits, labels) + word_loss_scale * loss_fn(word_logits, word_labels)
+        loss = word_loss_scale * loss_fn(word_logits, word_labels)
         loss_list.append(loss.mean().cpu())
         loss.backward()
         optimizer.step()

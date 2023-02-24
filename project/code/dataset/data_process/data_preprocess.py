@@ -3,7 +3,7 @@ from tqdm import tqdm
 import json
 import itertools
 
-DATA_DIR = 'input/track1_contest_4362/train/train'
+DATA_DIR = '/home/haoquan/GAIIC2022/original_data/train'
 SAVE_DIR = 'temp/tmp_data/lhq_data'
 
 preprocess_dir = os.path.join(SAVE_DIR, 'equal_processed_data')
@@ -17,7 +17,6 @@ for mkdir in mkdir_list:
 
 attr_dict_file = os.path.join(DATA_DIR, 'attr_to_attrvals.json')
 fine_file = os.path.join(DATA_DIR, 'train_fine.txt')
-
 coarse_file = os.path.join(DATA_DIR, 'train_coarse.txt')
 
 # -----------------生成新的attr_dict并保存---------------------#

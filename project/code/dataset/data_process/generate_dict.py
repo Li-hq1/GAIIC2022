@@ -3,13 +3,13 @@ import itertools
 import json
 import os
 
-from attr import attr
+# from attr import attr
 
 SAVE_DIR = 'temp/tmp_data/lhq_data'
 preprocess_dir = os.path.join(SAVE_DIR, 'dict')
 if not os.path.exists(preprocess_dir):
     os.makedirs(preprocess_dir)
-attr_dict_file = 'input/track1_contest_4362/train/train/attr_to_attrvals.json'
+attr_dict_file = 'original_data/train/attr_to_attrvals.json'
 
 
 # 加载原始的属性字典

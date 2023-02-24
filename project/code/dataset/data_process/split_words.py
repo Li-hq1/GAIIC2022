@@ -12,7 +12,7 @@ gpus = args.gpus
 os.environ['CUDA_VISIBLE_DEVICES'] = gpus
 
 SAVE_DIR = 'temp/tmp_data/lhq_data'
-ltp_path = 'input/pretrain_model_5207/ltp_base/ltp_base'
+ltp_path = 'ltp_base'
 
 preprocess_dir = os.path.join(SAVE_DIR, 'equal_processed_data')
 split_word_dir = os.path.join(SAVE_DIR, 'split_word')
@@ -120,7 +120,6 @@ with open(save_coarse_pos_file, 'w') as f:
     
     
 # ----------------------------coarse10412单纯分词-------------------------- #
-# 统计训练集的词表和词频，保存分词数据
 print('split words for coarse 10412 data...')
 coarse_rets = []
 with open(coarse_neg_file, 'r') as f:

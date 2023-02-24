@@ -1,5 +1,5 @@
 # data preprocess
-ORIGIN_DATA_DIR = "input/track1_contest_4362/train/train"
+ORIGIN_DATA_DIR = "original_data/train"
 PREPROCESS_DATA_DIR = "temp/zlm_tmp_data/unequal_processed_data"
 
 

@@ -10,8 +10,8 @@ attr_dict_file = 'temp/tmp_data/lhq_data/equal_processed_data/attr_to_attrvals.j
 vocab_dict_save_file = 'temp/tmp_data/lhq_data/vocab/vocab_dict.json'
 
 # 外部连接
-ltp_path = 'input/pretrain_model_5207/ltp_base/ltp_base'
-test_file = 'input/track1_contest_4362/semi_testB.txt'
+ltp_path = 'ltp_base'
+test_file = 'original_data/preliminary_testB.txt'
 
 new_data_dir = 'temp/tmp_data'
 SAVE_DIR = new_data_dir

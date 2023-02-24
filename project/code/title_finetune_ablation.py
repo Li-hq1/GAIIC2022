@@ -15,6 +15,7 @@ parser.add_argument('--gpus', type=str)
 parser.add_argument('--seed', type=int)
 parser.add_argument('--pretrain_seed', type=int)
 parser.add_argument('--pretrain_save_dir', type=str)
+parser.add_argument('--save_dir', type=str)
 args = parser.parse_args()   
 
 # fix the seed for reproducibility
@@ -29,7 +30,7 @@ pretrain_seed = args.pretrain_seed
 # configuration
 gpus = args.gpus
 batch_size = 64
-max_epoch = 2
+max_epoch = 4
 os.environ['CUDA_VISIBLE_DEVICES'] = gpus
 
 image_dropout = 0.0
@@ -45,7 +46,7 @@ lr = 2e-5
 min_lr = 1e-5
 warmup_epochs = 0
 
-save_dir = f'temp/tmp_data/lhq_output/title_finetune/order/seed{pretrain_seed}/'
+save_dir = args.save_dir
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 save_name = f'order_seed{pretrain_seed}_seed{seed}'
@@ -186,20 +187,20 @@ for epoch in range(max_epoch):
             # eval and save mdoel
             acc, loss = evaluate(model, val_dataloader)
             print('Acc:{:.2f}%, Loss:{:.5f}'.format(acc*100, loss))
-            # if acc > max_acc:
-            #     max_acc = acc
-            #     if last_path:
-            #         os.remove(last_path)
-            #     save_path = save_dir + save_name + '_'  + '{:.4f}'.format(acc)+'.pth'
-            #     last_path = save_path
-            #     torch.save(model.state_dict(), save_path)
-            if loss < min_loss:
-                min_loss = loss
-                if loss_last_path:
-                    os.remove(loss_last_path)
-                save_path = save_dir + save_name + '_'  + '{:.4f}'.format(acc) + '_'  + '{:.5f}'.format(loss)+'.pth'
-                loss_last_path = save_path
+            if acc > max_acc:
+                max_acc = acc
+                if last_path:
+                    os.remove(last_path)
+                save_path = save_dir + save_name + '_'  + '{:.4f}'.format(acc)+'.pth'
+                last_path = save_path
                 torch.save(model.state_dict(), save_path)
+            # if loss < min_loss:
+            #     min_loss = loss
+            #     if loss_last_path:
+            #         os.remove(loss_last_path)
+            #     save_path = save_dir + save_name + '_'  + '{:.4f}'.format(acc) + '_'  + '{:.5f}'.format(loss)+'.pth'
+            #     loss_last_path = save_path
+            #     torch.save(model.state_dict(), save_path)
         
         proba = torch.sigmoid(logits.cpu())
         proba[proba>0.5] = 1
@@ -216,17 +217,17 @@ for epoch in range(max_epoch):
     # eval and save mdoel
     acc, loss = evaluate(model, val_dataloader)
     print('Acc:{:.2f}%, Loss:{:.5f}'.format(acc*100, loss))
-    # if acc > max_acc:
-    #     max_acc = acc
-    #     if last_path:
-    #         os.remove(last_path)
-    #     save_path = save_dir + save_name + '_'  + '{:.4f}'.format(acc)+'.pth'
-    #     last_path = save_path
-    #     torch.save(model.state_dict(), save_path)
-    if loss < min_loss:
-        min_loss = loss
-        if loss_last_path:
-            os.remove(loss_last_path)
-        save_path = save_dir + save_name + '_'  + '{:.4f}'.format(acc) + '_'  + '{:.5f}'.format(loss)+'.pth'
-        loss_last_path = save_path
+    if acc > max_acc:
+        max_acc = acc
+        if last_path:
+            os.remove(last_path)
+        save_path = save_dir + save_name + '_'  + '{:.4f}'.format(acc)+'.pth'
+        last_path = save_path
         torch.save(model.state_dict(), save_path)
+    # if loss < min_loss:
+    #     min_loss = loss
+    #     if loss_last_path:
+    #         os.remove(loss_last_path)
+    #     save_path = save_dir + save_name + '_'  + '{:.4f}'.format(acc) + '_'  + '{:.5f}'.format(loss)+'.pth'
+    #     loss_last_path = save_path
+    #     torch.save(model.state_dict(), save_path)

@@ -13,10 +13,10 @@ from utils.logging import my_custom_logger
 import argparse 
 
 parser = argparse.ArgumentParser('', add_help=False)
-parser.add_argument('--gpus', default='1', type=str)
+parser.add_argument('--gpus', type=str)
 args = parser.parse_args()
 
-seed = 0
+seed = 3
 gpus = args.gpus
 
 image_dropout = 0.3
@@ -28,7 +28,7 @@ np.random.seed(seed)
 torch.backends.cudnn.benchmark = True
 
 batch_size = 256
-max_epoch = int(400 * 13 / 6.5)
+max_epoch = int(400 * 13 / 1.3)
 os.environ['CUDA_VISIBLE_DEVICES'] = gpus
 
 
@@ -36,7 +36,7 @@ split_layers = 0
 fuse_layers = 6
 n_img_expand = 6
 
-save_dir = f'temp/tmp_data/lhq_output/dataset_scale/6.5w/'
+save_dir = f'temp/tmp_data/lhq_output/dataset_scale/1.3w/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 save_name = f'order_seed{seed}'
@@ -51,7 +51,6 @@ warmup_epochs = 0
 
 LOAD_CKPT = False
 ckpt_file = ''
-
 
 # order
 train_file = 'temp/tmp_data/lhq_data/divided/title/order/fine40000.txt,temp/tmp_data/lhq_data/equal_split_word/coarse89588.txt'
@@ -68,9 +67,12 @@ with open(vocab_dict_file, 'r') as f:
 split_config = BertConfig(num_hidden_layers=split_layers)
 fuse_config = BertConfig(num_hidden_layers=fuse_layers, image_dropout=image_dropout)
 model = DesignFuseModel(split_config, fuse_config, vocab_file, n_img_expand=n_img_expand, word_match=True)
-# if LOAD_CKPT:
-#     model.load_state_dict(torch.load(ckpt_file))
+n_params = sum(p.numel() for p in model.parameters())
+print('number of model parameters:', n_params)
+if LOAD_CKPT:
+    model.load_state_dict(torch.load(ckpt_file))
 model.cuda()
+
 
 # dataset
 from dataset.title_unequal_2tasks_dataset import FuseReplaceDataset, cls_collate_fn
@@ -84,7 +86,7 @@ val_dataset = dataset(val_file, attr_dict_file, vocab_dict, is_train=False)
 train_dataloader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=True,
         num_workers=8,
         pin_memory=True,
         drop_last=True,
@@ -99,7 +101,6 @@ val_dataloader = DataLoader(
         drop_last=False,
         collate_fn=collate_fn,
     )
-
 
 
 # optimizer 

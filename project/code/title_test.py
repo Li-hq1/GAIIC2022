@@ -3,6 +3,7 @@ import torch
 import json
 import numpy as np 
 from tqdm import tqdm 
+import time
 
 from model.bert.bertconfig import BertConfig
 from model.fusemodel import DesignFuseModel
@@ -13,7 +14,7 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 torch.backends.cudnn.benchmark = True
 
-gpus = '0'
+gpus = '1'
 os.environ['CUDA_VISIBLE_DEVICES'] = gpus
 
 split_layers = 0
@@ -51,6 +52,8 @@ for fold_id, model_fold in enumerate(model_folds):
     model.eval()
     rets = []
     with open(test_file, 'r') as f:
+        avg_time = 0
+        count = 0
         for i, data in enumerate(tqdm(f)):
             data = json.loads(data)
             image = data['feature']
@@ -60,13 +63,17 @@ for fold_id, model_fold in enumerate(model_folds):
             
             image = image[None, ].cuda()
             split = [split]
-
+            
             with torch.no_grad():
+                start_time = time.time()
                 logits, word_logits, word_mask = model(image, split)
+                avg_time += time.time()-start_time
+                count += 1
                 logits = logits.cpu()
                 logits = torch.sigmoid(logits)
                 # logits[logits>0.5] = 1
                 # logits[logits<=0.5] = 0
+            print("avg_time", avg_time/count)
 
             match = {}
             match['图文'] = logits.item()

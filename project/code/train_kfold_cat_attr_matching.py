@@ -140,7 +140,9 @@ for fold_id, (train_index, test_index) in enumerate(kf.split(all_item_data)):
         model = FinalCatModel(attr_num=80, dropout=dropout)
         print("model param num", sum(param.numel() for param in model.parameters()))
         model.cuda()
-
+        n_params = sum(p.numel() for p in model.parameters())
+        print('number of model parameters:', n_params)
+        
         # 定义优化器以及Loss
         optimizer = optim.AdamW(model.parameters(), lr=lr)
         loss_fn = torch.nn.BCEWithLogitsLoss()

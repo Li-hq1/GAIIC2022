@@ -13,7 +13,7 @@ from utils.logging import my_custom_logger
 import argparse 
 
 parser = argparse.ArgumentParser('', add_help=False)
-parser.add_argument('--gpus', default='1', type=str)
+parser.add_argument('--gpus', type=str)
 args = parser.parse_args()
 
 seed = 0
@@ -28,7 +28,7 @@ np.random.seed(seed)
 torch.backends.cudnn.benchmark = True
 
 batch_size = 256
-max_epoch = int(400 * 13 / 6.5)
+max_epoch = 400
 os.environ['CUDA_VISIBLE_DEVICES'] = gpus
 
 
@@ -36,7 +36,7 @@ split_layers = 0
 fuse_layers = 6
 n_img_expand = 6
 
-save_dir = f'temp/tmp_data/lhq_output/dataset_scale/6.5w/'
+save_dir = f'temp/tmp_data/lhq_output/pretrain_task/title_matching/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 save_name = f'order_seed{seed}'
@@ -52,7 +52,6 @@ warmup_epochs = 0
 LOAD_CKPT = False
 ckpt_file = ''
 
-
 # order
 train_file = 'temp/tmp_data/lhq_data/divided/title/order/fine40000.txt,temp/tmp_data/lhq_data/equal_split_word/coarse89588.txt'
 val_file = 'temp/tmp_data/lhq_data/divided/title/order/fine700.txt,temp/tmp_data/lhq_data/divided/title/order/coarse1412.txt'
@@ -64,13 +63,6 @@ attr_dict_file = 'temp/tmp_data/lhq_data/dict/attr_relation_dict.json'
 with open(vocab_dict_file, 'r') as f:
     vocab_dict = json.load(f)
 
-# model
-split_config = BertConfig(num_hidden_layers=split_layers)
-fuse_config = BertConfig(num_hidden_layers=fuse_layers, image_dropout=image_dropout)
-model = DesignFuseModel(split_config, fuse_config, vocab_file, n_img_expand=n_img_expand, word_match=True)
-# if LOAD_CKPT:
-#     model.load_state_dict(torch.load(ckpt_file))
-model.cuda()
 
 # dataset
 from dataset.title_unequal_2tasks_dataset import FuseReplaceDataset, cls_collate_fn
@@ -101,6 +93,13 @@ val_dataloader = DataLoader(
     )
 
 
+# model
+split_config = BertConfig(num_hidden_layers=split_layers)
+fuse_config = BertConfig(num_hidden_layers=fuse_layers, image_dropout=image_dropout)
+model = DesignFuseModel(split_config, fuse_config, vocab_file, n_img_expand=n_img_expand, word_match=False)
+if LOAD_CKPT:
+    model.load_state_dict(torch.load(ckpt_file))
+model.cuda()
 
 # optimizer 
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
@@ -118,7 +117,7 @@ def evaluate(model, val_dataloader):
         images, splits, labels, word_labels = batch 
         images = images.cuda()
 
-        logits, word_logits, word_mask = model(images, splits)
+        logits = model(images, splits)
         
         logits = logits.cpu()
         logits = torch.sigmoid(logits)
@@ -151,14 +150,14 @@ for epoch in range(max_epoch):
         images = images.cuda()
         labels = labels.float().cuda()
         
-        logits, word_logits, word_mask = model(images, splits)
+        logits = model(images, splits)
         
         # word logits process
-        _, W = word_logits.shape
-        word_labels = word_labels[:, :W].float().cuda()
-        word_mask = word_mask.to(torch.bool)
-        word_logits = word_logits[word_mask]
-        word_labels = word_labels[word_mask]
+        # _, W = word_logits.shape
+        # word_labels = word_labels[:, :W].float().cuda()
+        # word_mask = word_mask.to(torch.bool)
+        # word_logits = word_logits[word_mask]
+        # word_labels = word_labels[word_mask]
 
 
         # train acc
@@ -177,7 +176,7 @@ for epoch in range(max_epoch):
         total += len(labels)
         i += 1
         
-        loss = loss_fn(logits, labels) + word_loss_scale * loss_fn(word_logits, word_labels)
+        loss = loss_fn(logits, labels) # + word_loss_scale * loss_fn(word_logits, word_labels)
         loss_list.append(loss.mean().cpu())
         loss.backward()
         optimizer.step()
